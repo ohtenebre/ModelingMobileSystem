@@ -57,6 +57,13 @@ void back(SharedData &sd)
                 sd.users[u].qpsk = QPSK_modulator(sd.users[u].interleaved);
             }
 
+            for (int u = 0; u < 4; ++u)
+            {
+                size_t space = sd.users[u].qpsk.size();
+                if (space % 15 != 0)
+                    sd.users[u].qpsk.resize(((space + 14) / 15) * 15, { 0.707f, 0.707f });
+            }
+
             sd.ofdm_symbols = ofdma_modulator(sd);
             sd.signal = chanel_model(sd.ofdm_symbols, sd);
             sd.rx_spectrum = spectrum_calculate(sd.signal, sd);

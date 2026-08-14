@@ -79,11 +79,15 @@ struct SharedData
     fftwf_plan plan_spectrum;
     fftwf_complex *in_spectrum;
     fftwf_complex *out_spectrum;
+
+    int fft_size_alloc = 0;
 };
 
 constexpr size_t PACKET_SIZE = 100;
 
 void back(SharedData &sd);
+
+void ensure_fft_plans(SharedData &sd);
 
 std::vector<uint8_t> encoder(std::string text);
 std::string decoder(std::vector<uint8_t> &bytes);

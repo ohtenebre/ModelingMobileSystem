@@ -21,6 +21,33 @@ int compute_OFDM_params(const OFDMConfig &cfg, int &out_NSYM, int &out_RS, int &
     return cfg.FFT_SIZE;
 }
 
+void ensure_fft_plans(SharedData &sd)
+{
+    const int size = sd.OfdmCfg.FFT_SIZE;
+    if (sd.fft_size_alloc == size)
+        return;
+
+    if (sd.fft_size_alloc > 0)
+    {
+        fftwf_destroy_plan(sd.plan_ifft);
+        fftwf_destroy_plan(sd.plan_fft);
+        fftwf_free(sd.in_ifft);
+        fftwf_free(sd.out_ifft);
+        fftwf_free(sd.in_fft);
+        fftwf_free(sd.out_fft);
+    }
+
+    sd.in_ifft = fftwf_alloc_complex(size);
+    sd.out_ifft = fftwf_alloc_complex(size);
+    sd.in_fft = fftwf_alloc_complex(size);
+    sd.out_fft = fftwf_alloc_complex(size);
+
+    sd.plan_ifft = fftwf_plan_dft_1d(size, sd.in_ifft, sd.out_ifft, FFTW_BACKWARD, FFTW_ESTIMATE);
+    sd.plan_fft = fftwf_plan_dft_1d(size, sd.in_fft, sd.out_fft, FFTW_FORWARD, FFTW_ESTIMATE);
+
+    sd.fft_size_alloc = size;
+}
+
 std::vector<std::complex<float>> ofdm_modulator(const std::vector<std::complex<float>> &symbols, SharedData &sd)
 {
     int NSYM, RS, CP;
@@ -227,6 +254,8 @@ static void build_user_subcarriers(SharedData &sd, std::vector<std::vector<int>>
 
 std::vector<std::complex<float>> ofdma_modulator(SharedData &sd)
 {
+    ensure_fft_plans(sd);
+
     int NSYM, RS, CP;
     const int N_fft = compute_OFDM_params(sd.OfdmCfg, NSYM, RS, CP);
 
@@ -287,6 +316,8 @@ std::vector<std::complex<float>> ofdma_modulator(SharedData &sd)
 
 void ofdma_demodulator(const std::vector<std::complex<float>> &rx, SharedData &sd)
 {
+    ensure_fft_plans(sd);
+
     int NSYM, RS, CP;
     const int N_fft = compute_OFDM_params(sd.OfdmCfg, NSYM, RS, CP);
 

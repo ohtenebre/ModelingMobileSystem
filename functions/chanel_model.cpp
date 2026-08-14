@@ -36,7 +36,10 @@ std::vector<std::complex<float>> chanel_model(const std::vector<std::complex<flo
     int carrier_f = sd.ChannelCfg.carrier_freq;
     for (int i = 0; i < N_b; ++i)
     {
-        G[i] = static_cast<float>(c / (4 * M_PI * D[i] * carrier_f));
+        if (carrier_f > 0)
+            G[i] = static_cast<float>(c / (4 * M_PI * D[i] * carrier_f));
+        else
+            G[i] = 1.0f;
     }
 
     float maxG = *std::max_element(G.begin(), G.end());

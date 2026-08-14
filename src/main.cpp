@@ -65,6 +65,8 @@ int main(int argc, char *argv[])
     sd.plan_fft = fftwf_plan_dft_1d(sd.OfdmCfg.FFT_SIZE, sd.in_fft, sd.out_fft, FFTW_FORWARD, FFTW_ESTIMATE);
     sd.plan_spectrum = fftwf_plan_dft_1d(1024, sd.in_spectrum, sd.out_spectrum, FFTW_FORWARD, FFTW_ESTIMATE);
 
+    sd.fft_size_alloc = sd.OfdmCfg.FFT_SIZE;
+
     std::thread Back(back, std::ref(sd));
 
     ImVec4 user_colors[4] = {
@@ -114,7 +116,7 @@ int main(int argc, char *argv[])
         ImGui::SliderInt("Num of beams", &sd.ChannelCfg.N_b, 1, 12);
         ImGui::SliderFloat("PSD (N0 dB)", &sd.ChannelCfg.N_0, -100, 40);
         ImGui::DragInt("Bandwidth", &sd.ChannelCfg.B, 100000, 0, 20000000);
-        ImGui::SliderFloat("Carrier Freq", &sd.ChannelCfg.carrier_freq, 0.0f, 3000e6f, "%.3e");
+        ImGui::SliderFloat("Carrier Freq", &sd.ChannelCfg.carrier_freq, 1.0f, 3000e6f, "%.3e");
 
         ImGui::Separator();
         ImGui::Text("Avg BER: %f", sd.BER);
@@ -319,8 +321,11 @@ int main(int argc, char *argv[])
         if (samples > (int)sd.ber_vec_size)
             samples = (int)sd.ber_vec_size;
 
-        for (int i = 0; i < samples; i++)
-            ber_buf[i] = sd.BER_vec[(render_start + i) % sd.ber_vec_size];
+        {
+            std::lock_guard<std::mutex> lock(sd.mtx);
+            for (int i = 0; i < samples; i++)
+                ber_buf[i] = sd.BER_vec[(render_start + i) % sd.ber_vec_size];
+        }
 
         if (ImPlot::BeginPlot("BER", ImVec2(-1, -1)))
         {
